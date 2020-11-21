@@ -99,7 +99,22 @@ static void handleInput (char c) {
           if (RF_STATUS==1) rf12_initialize(nodeID, RF_freq, networkGroup);
         }
         break;
-    
+
+      case 'c': //  set sampling ct1 or ct2
+        if (value==1){
+          ct = 1; // 1 for ct1, 2 for ct2, only support 1 at a time
+        }
+        else{
+          ct = 2;
+        }
+        break;
+
+      case 'f': //  set no_of_half_wavelengths
+        if (value>=0){
+          no_of_half_wavelengths = value; // ususally 10 or 20, 
+        }
+        break;
+
       case 'g': // set network group
         if (value>=0){
           networkGroup = value;

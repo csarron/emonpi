@@ -74,7 +74,7 @@ LiquidCrystal_I2C lcd(0,0,0);
 
 //----------------------------emonPi Firmware Version---------------------------------------------------------------------------------------------------------------
 // Changelog: https://github.com/openenergymonitor/emonpi/blob/master/firmware/readme.md
-const int firmware_version = 292;                                     //firmware version x 100 e.g 100 = V1.00
+const int firmware_version = 293;                                     //firmware version x 100 e.g 100 = V1.00
 
 //----------------------------emonPi Settings---------------------------------------------------------------------------------------------------------------
 bool debug =                   true;
@@ -92,12 +92,12 @@ const float Ical1=                90.9;                             // (2000 tur
 const float Ical2=                90.9;
 float Vcal_EU=                    256.8;                             // (230V x 13) / (9V x 1.2) = 276.9 - Calibration for EU AC-AC adapter 77DE-06-09
 const float Vcal_USA=             130.0;                             // Calibration for US AC-AC adapter 77DA-10-09
-bool USA=                      false;
+bool USA =                      true;
 const byte min_pulsewidth=        60;                                // minimum width of interrupt pulse
 
 const float phase_shift=          1.7;
 const int no_of_samples=          1480;
-const byte no_of_half_wavelengths= 20;
+byte no_of_half_wavelengths= 10;
 const int timeout=                2000;                               // emonLib timeout
 const int ACAC_DETECTION_LEVEL=   3000;
 
@@ -177,6 +177,10 @@ const char helpText1[] PROGMEM =                                 // Available Se
 "  <n> q      - set quiet mode (1 = don't report bad packets)\n"
 ;
 
+unsigned char ct=1;
+unsigned int power1=0;
+unsigned int power2=0;
+
 //-------------------------------------------------------------------------------------------------------------------------------------------
 // SETUP ********************************************************************************************
 //-------------------------------------------------------------------------------------------------------------------------------------------
@@ -255,93 +259,50 @@ void loop()
 
   if (Serial.available()){
     handleInput(Serial.read());                                                   // If serial input is received
-    double_LED_flash();
+    Serial.print("ct,");
+    Serial.print(ct);
+    Serial.print(",no_of_half_wavelengths,");
+    Serial.print(no_of_half_wavelengths);
+    Serial.println();
+    // double_LED_flash();
   }
-
-
-  if (RF_STATUS==1){                                                              // IF RF module is present and enabled then perform RF tasks
-    if (RF_Rx_Handle()==1) {                                                      // Returns true if RF packet is received
-       double_LED_flash();
-    }
-
-    send_RF();                                                                    // Transmitt data packets if needed
-
-    if ((now - last_rf_rest) > RF_RESET_PERIOD) {
-      rf12_initialize(nodeID, RF_freq, networkGroup);                             // Periodically reset RFM69CW to keep it alive :-(
-      last_rf_rest = now;
-    }
-
-   }
-
-
-  if ((now - last_sample) > TIME_BETWEEN_READINGS)
-  {
-    single_LED_flash();                                                           // single flash of LED on local CT sample
 
 // CT1 --------------------------------------------------------------------------------------------------------------
-  if (analogRead(1) > 0){                                                         // If CT is plugged in then sample
+  if ( (ct==1) && (analogRead(1) > 0)){                                                         // If CT is plugged in then sample
     if (ACAC)
     {
+
       ct1.calcVI(no_of_half_wavelengths,timeout);
-      emonPi.power1=ct1.realPower;
-      emonPi.Vrms=ct1.Vrms*100;
+      // emonPi.power1=ct1.realPower;
+      // emonPi.Vrms=ct1.Vrms*100;
+      // emonPi[sample_count] = ct1.realPower * 100;
+      power1 = ct1.realPower * 100;
     }
-    else emonPi.power1 = ct1.calcIrms(no_of_samples)*Vrms;                       // Calculate Apparent Power if no AC-AC
+    else power1 = ct1.calcIrms(no_of_samples)*Vrms * 100;
+    // else emonPi.power1 = ct1.calcIrms(no_of_samples)*Vrms;                       // Calculate Apparent Power if no AC-AC
+  Serial.print("power1,");
+  Serial.print(power1);
+  Serial.println();
   }
-  else emonPi.power1=0;                                                         //CT is unplugged
+  // else emonPi.power1=0;                                                         //CT is unplugged
 
 // CT2 --------------------------------------------------------------------------------------------------------------
-  if (analogRead(2) > 0){                                                         // If CT is plugged in then sample
+  if ( (ct==2) && (analogRead(2) > 0)){                                                         // If CT is plugged in then sample
    if (ACAC)                                                                      // Read from CT 2
    {
      ct2.calcVI(no_of_half_wavelengths,timeout);
-     emonPi.power2=ct2.realPower;
-     emonPi.Vrms=ct2.Vrms*100;
+    //  emonPi.power2=ct2.realPower;
+    //  emonPi.Vrms=ct2.Vrms*100;
+    power2 = ct2.realPower * 100;
    }
-   else emonPi.power2 = ct2.calcIrms(no_of_samples)*Vrms;
+   else power2 = ct2.realPower * 100;
+  //  else emonPi.power2 = ct2.calcIrms(no_of_samples)*Vrms;
+
+  Serial.print("power2,");
+  Serial.print(power2);
+  Serial.println();
   }
-  else emonPi.power2=0;
-
-  emonPi.power1_plus_2=emonPi.power1 + emonPi.power2;                                       //Calculate power 1 plus power 2 variable for US and solar PV installs
-
-  if ((ACAC==0) && (CT_count > 0)) emonPi.Vrms=Vrms*100;                                   // If no AC wave detected set VRMS constant
-
-  if ((ACAC==1) && (CT_count==0)) {                                                        // If only AC-AC is connected then return just VRMS calculation
-     ct1.calcVI(no_of_half_wavelengths,timeout);
-     emonPi.Vrms=ct1.Vrms*100;
-  }
-
-  //Serial.print(emonPi.pulseCount); Serial.print(" ");delay(5);
-   // if (debug==1) {Serial.print(emonPi.power2); Serial.print(" ");delay(5);}
-
-
-    if (DS18B20_STATUS==1)
-    {
-      sensors.requestTemperatures();                                        // Send the command to get temperatures
-      for(byte j=0;j<numSensors;j++) emonPi.temp[j]=get_temperature(j);
-    }
-
-    if (pulseCount)                                                       // if the ISR has counted some pulses, update the total count
-    {
-      cli();                                                              // Disable interrupt just in case pulse comes in while we are updating the count
-      emonPi.pulseCount += pulseCount;
-      pulseCount = 0;
-      sei();                                                              // Re-enable interrupts
-    }
-    /*
-    Serial.print(CT1); Serial.print(" "); Serial.print(CT2); Serial.print(" "); Serial.print(ACAC); Serial.print(" "); Serial.println  (CT_count);
-    Serial.print(emonPi.power1); Serial.print(" ");
-    Serial.print(emonPi.power2); Serial.print(" ");
-    Serial.print(emonPi.Vrms); Serial.print(" ");
-    Serial.println(emonPi.temp[1]);
-    */
-
-    send_emonpi_serial();                                             //Send emonPi data to Pi serial using struct packet structure
-
-    last_sample = now;                                           //Record time of sample
-
-    } // end sample
-
+  // else emonPi.power2=0;
 
 } // end loop---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
