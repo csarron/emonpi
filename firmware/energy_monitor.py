@@ -17,9 +17,8 @@ def main(args):
   # ser.write(b'c1')
   try:
     while True:
-      response = ser.readline()
-    #  z = response.split(" ")
       try:
+        response = ser.readline()
         content = response.decode().strip()
         save_data = f'{time.clock_gettime(time.CLOCK_REALTIME):.6f},{content}\n'
         of.write(save_data)
@@ -27,9 +26,11 @@ def main(args):
       except UnicodeDecodeError as e:
         print(e, 'decode error, skip')
         continue
+      except serial.SerialException as e:
+        print(e, 'SerialException, skip')
+        continue
       # print("{}\n".format(datetime.now()))
       print()
-
   except KeyboardInterrupt:
     ser.close()
     of.close()
