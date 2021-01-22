@@ -257,15 +257,15 @@ void loop()
   else
     digitalWrite(emonpi_GPIO_pin, LOW);
 
-  if (Serial.available()){
-    handleInput(Serial.read());                                                   // If serial input is received
-    Serial.print("ct,");
-    Serial.print(ct);
-    Serial.print(",no_of_half_wavelengths,");
-    Serial.print(no_of_half_wavelengths);
-    Serial.println();
-    // double_LED_flash();
-  }
+  // if (Serial.available()){
+  //   handleInput(Serial.read());                                                   // If serial input is received
+  //   Serial.print("ct,");
+  //   Serial.print(ct);
+  //   Serial.print(",no_of_half_wavelengths,");
+  //   Serial.print(no_of_half_wavelengths);
+  //   Serial.println();
+  //   // double_LED_flash();
+  // }
 
 // CT1 --------------------------------------------------------------------------------------------------------------
   if ( (ct==1) && (analogRead(1) > 0)){                                                         // If CT is plugged in then sample
