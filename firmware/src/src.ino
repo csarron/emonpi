@@ -97,7 +97,7 @@ const byte min_pulsewidth=        60;                                // minimum 
 
 const float phase_shift=          1.7;
 const int no_of_samples=          1480;
-byte no_of_half_wavelengths= 10;
+byte no_of_half_wavelengths= 20;
 const int timeout=                2000;                               // emonLib timeout
 const int ACAC_DETECTION_LEVEL=   3000;
 

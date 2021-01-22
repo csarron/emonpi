@@ -9,7 +9,7 @@ import time
 def main(args):
   output_file = args.output_file
   of = open(output_file, 'w')
-
+  of.write('timestamp,power1,value\n')
   ser = serial.Serial('/dev/ttyAMA0', 38400)
 
   # ser.write(b'f10')
