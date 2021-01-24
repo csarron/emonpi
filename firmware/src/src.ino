@@ -280,7 +280,7 @@ void loop()
     }
     else power1 = ct1.calcIrms(no_of_samples)*Vrms * 100;
     // else emonPi.power1 = ct1.calcIrms(no_of_samples)*Vrms;                       // Calculate Apparent Power if no AC-AC
-  Serial.print("power1,");
+  // Serial.print("power1,");
   Serial.print(power1);
   Serial.println();
   }
